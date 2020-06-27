@@ -1,0 +1,118 @@
+---
+title: "Idősor: ADF-teszt, kointegráció"
+author: "Granát Marcell"
+date: '2020-06-01'
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, comment = "")
+```
+
+```{r packages, message=F}
+library(tidyverse)
+library(ggplot2)
+library(forecast)
+library(urca)
+```
+Urca ha nincs betöltve, akkor nem lehet lekérni a summary-t a modellből
+
+```{r dataset}
+load("C:/Users/user/Desktop/OkoR/econometrics/ADF-test&coint_dataset.RData")
+```
+
+```{r}
+x <- LiveBirthAndFertility$TotalFertility %>% ts(start = 1960)
+x %>% forecast::ggtsdisplay()
+```
+
+# ADF-tesztek
+
+```{r}
+x %>% tseries::adf.test(k = 1)
+```
+  
+Gretl 1-et javasol, nincs nagy eltérés.
+  
+
+```{r}
+x %>%
+  ur.df(type = "drift", selectlags = "AIC") %>%
+  summary()
+```
+
+Teljesen más a t-statisztika, mint a greltben, pedig a regresszió eredmenyéi megegyeznek.
+
+```{r}
+x %>%
+  ur.df(type = "none", selectlags = "AIC") %>%
+  summary()
+```
+
+```{r}
+x %>% aTSA::stationary.test()
+```
+
+**Ez a befutó!!! Gretllel megegyező megoldás, nincs szükség aktiválásra.**
+
+```{r}
+x %>% aTSA::stationary.test(nlag = 10)
+```
+
+```{r}
+x %>%
+  diff() %>%
+  aTSA::stationary.test()
+```
+
+```{r}
+x %>%
+  log() %>%
+  aTSA::stationary.test()
+```
+
+```{r}
+x %>%
+  log() %>%
+  diff() %>%
+  aTSA::stationary.test()
+```
+
+# Deviza file
+
+
+
+```{r}
+deviza %>% head()
+```
+
+
+```{r}
+ATS <- deviza$ATS %>% ts(start = 1990, frequency = 365)
+DEM <- deviza$DEM %>% ts(start = 1990, frequency = 365)
+```
+
+```{r}
+ATS %>% autoplot()
+```
+
+```{r}
+DEM %>% autoplot()
+```
+
+
+```{r}
+benchmark %>%
+  select(-obs) %>%
+  ca.jo(type = "eigen", K = 5, ecdet = "none", spec = "longrun") %>%
+  summary()
+```
+
+Gretl Lmax tesztjével ekvivalens. K adja meg a lag ordert, de nem tudni miként kell választani (Gretl-ben is manuálisan kell megadni, alapból 5)
+
+```{r}
+deviza %>%
+  select(-obs) %>%
+  tsDyn::VECM(lag = 5) %>%
+  summary()
+```
