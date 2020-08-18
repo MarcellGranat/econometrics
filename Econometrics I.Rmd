@@ -1,0 +1,116 @@
+---
+title: "Session 1 - Histogram, Boxplot, Heatmap"
+author: "Granát Marcell"
+date: '2020-06-01'
+output: github_document
+---
+
+# Session 1
+
+## Setup
+  
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, comment = "", cache = T)
+```
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+BpHlakas <- readr::read_csv("BpHlakas.csv")
+attach(BpHlakas)
+```
+
+```{r}
+BpHlakas %>% ggplot(aes(KinArMFt)) + geom_histogram()
+```
+
+```{r}
+KinArMFt %>% chisq.test() # test for normality (n of bins are not equal as in GRETL)
+```
+
+```{r}
+BpHlakas %>% ggplot(aes(KinArMFt)) + geom_boxplot()
+```
+
+```{r}
+BpHlakas %>% ggplot(aes(KinArMFt, y = factor(Kerulet))) + geom_boxplot() + coord_flip()
+```
+
+```{r}
+BpHlakas %>% cor() %>% ggcorrplot::ggcorrplot(hc.order = TRUE, type = "lower",
+   lab = F) + theme(
+     axis.text = element_text(size = 4)
+   )
+```
+
+# Session 2
+
+```{r}
+BpHlakas2 <- BpHlakas %>% select(KinArMFt, Terulet, Terasz, Szoba, Felszoba, Furdoszoba, Emelet, DeliTaj, Buda)
+BpHlakas2 %>% glimpse()
+```
+
+```{r}
+simple_ols <- lm(KinArMFt ~ ., data = BpHlakas2) 
+simple_ols %>% summary()
+```
+
+```{r}
+standard_ols <- BpHlakas2 %>% mutate_all(function(x) (x - mean(x, na.rm = T)) / sd(x, T)) %>% #normalize
+  lm(formula = KinArMFt ~ .)
+standard_ols
+standard_betas <- standard_ols %>% tidy() %>% .[-1, 1:2]
+```
+
+```{r}
+recipe(KinArMFt ~ ., data = BpHlakas2) %>% 
+  step_normalize(everything()) %>% 
+  remove_role(KinArMFt, old_role ="predictor") %>% 
+  prep() %>% juice() %>% lm()
+```
+
+
+```{r}
+correlations <- BpHlakas2 %>% cor() %>% .[,"KinArMFt"] %>% c() %>% .[-1]
+standard_betas %>% mutate(
+  cor = correlations,
+  R = estimate * cor
+)
+sum(standard_betas$R) %>% scales::percent(accuracy = .01)
+```
+
+# Session 3
+
+### VIF
+
+```{r}
+simple_ols %>% car::vif()
+```
+
+### Tolerance
+
+```{r}
+1/(simple_ols %>% car::vif())
+```
+
+# Half room
+
+```{r}
+simple_ols %>% car::linearHypothesis(c("Szoba = 2*Felszoba"),test="F")
+```
+
+# Omit variables based on AIC
+
+```{r}
+MASS::stepAIC(simple_ols, direction="backward")
+```
+
+### Predict
+
+```{r}
+predict.lm(simple_ols, newdata = apply(BpHlakas2[-1],2, median) %>% data.frame() %>% t() %>% data.frame(), level = 0.05, interval = "prediction")
+```
+
+
+
+

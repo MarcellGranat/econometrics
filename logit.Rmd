@@ -1,0 +1,66 @@
+---
+title: "Logit"
+author: "Granát Marcell"
+date: '`r Sys.Date()`'
+output: github_document
+editor_options: 
+  chunk_output_type: console
+---
+
+## Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, comment = "")
+```
+
+```{r}
+library(tidyverse)
+load("Csod.RData")
+```
+
+## Logit model
+
+```{r}
+logit_model <- csod %>% glm(formula = csod ~ eszkfseb100 + stokear100 + bonitas100 + jovedelm100 + feszkar100 + likvid100, family = "binomial")
+```
+
+```{r}
+logit_model %>% broom::tidy()
+logit_model %>% broom::glance()
+logit_model %>% broom::augment()
+```
+
+```{r}
+pROC::roc(truth ~ estimate, data = data.frame(
+  truth = csod$csod,
+  estimate = predict.glm(logit_model, type = "response")
+)) %>% pROC::ggroc()
+```
+
+# Tidymodels
+
+```{r}
+library(tidymodels)
+```
+
+```{r}
+logit_rec <- logistic_reg() %>%
+  set_engine("glm") %>%
+  set_mode("classification") %>%
+  translate()
+```
+
+```{r}
+logit_model_tidy <- logit_rec %>% fit(csod ~ ., data = csod %>% select(eszkfseb100, stokear100, bonitas100, jovedelm100, feszkar100, likvid100) %>% mutate(
+  csod = factor(csod$csod)
+))
+```
+
+```{r}
+logit_model_tidy %>% tidy()
+```
+
+```{r}
+conf_mat(logit_model_tidy)
+```
+

@@ -1,0 +1,576 @@
+---
+title: |
+    ![](unnamed.jpg){width=2in}
+      <center> Ggplot és más érdekes állatfajták <center>
+author: "<center> Granát Marcell <center>"
+date: "<center> `r Sys.Date()` </center>"
+output:
+  html_document: 
+    code_folding: show
+    df_print: kable
+    fig_caption: yes
+    fig_height: 10
+    fig_width: 10
+    keep_md: yes
+    number_sections: yes
+    pages.print: yes
+    theme: cerulean
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+  html_notebook:
+    code_folding: hide
+    df_print: paged
+    fig_caption: yes
+    fig_height: 10
+    fig_width: 10
+    keep_md: yes
+    number_sections: yes
+    pages.print: yes
+    theme: paper
+    toc: yes
+    toc_float:
+      collapsed: no
+      smooth_scroll: no
+editor_options: 
+  chunk_output_type: inline
+---
+
+> “Csak abban a statisztikában hiszek, amit én magam hamisítok, vagy abban, amelyiknek szép a színe.”
+\
+--- Winston Churchill, `r Sys.Date()`
+
+```{css echo=FALSE}
+    caption {
+      color: #4a4a4a;
+      font-weight: bold;
+      font-size: 1.2em;
+      text-align: center;
+    } 
+
+
+body {
+text-align: justify}
+```
+
+
+# Adatok
+
+Elsőként töltsünk be egy adattáblát, amellyel dolgozni tudunk. Szerencsénkre az R számos adatbázist tartalmaz beépítve, ha a neten szörfölünk, akkor főleg ezeken keresztül fogjuk a problémákat bemutatva látni. Ezen táblák listáját a `data()` paranccsal tudjuk megtekinteni, illetve az alábbi módon tudjuk őket betölteni:
+```{r}
+data(iris)
+```
+
+A részletes leírás a `?iris` paranccsal kérhető le.
+
+```{r echo=FALSE}
+cat("This famous (Fisher's or Anderson's) iris data set gives the measurements in \ncentimeters of the variables sepal length and width and petal length and width, \nrespectively, for 50 flowers from each of 3 species of iris. \nThe species are Iris setosa, versicolor, and virginica.")
+```
+
+Tehát a most betöltött adatok 3 különböző virág sziromleveleinek (petal) és
+csészeleveleinek (sepal) hosszát (length) és szélességét (width) tartalmazza. Tudjuk továbbá, hogy mind a három virágfajtából (species) 50-50 darabot tartalmaz a tábla. **Tekintsük meg a táblánk felépítését!**
+A `head` parancs egy táblázat első néhány sorát jeleníti meg (meglehet változtatni, hogy mennyit).
+
+```{r include=FALSE}
+library(knitr) # for kable
+```
+
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results="hide"}
+head(iris)
+```
+
+```{r echo=FALSE}
+kable(head(iris), align = rep("c",5))
+```
+
+
+Mivel most más adattáblára nem lesz szükségünk, tegyük ezt a táblát a munkakörnyezet alapértelmeztjévé, amit az `attach` tesz lehetővé. Ily módon a későbbiekben nem kell minden alkalommal specifikálni, hogy melyik táblázat "Sepal.length" oszlopára gondoltunk, elég lesz csak az oszlop nevére hivatkozni.
+```{r}
+attach(iris)
+```
+
+# Bevezetés a ggplot2-ről
+
+Na lássuk miként működik az ábrázolás az R-ben. Külön package van hozzá, ami a 'ggplot2' nevet viseli. Nem ez az egyetlen "ábrázolási nyelv", van beépített is, ami a `plot` paranccsal működik, illetve vannak további packagek, mint a `latice`, `plotly`, azonban a ggplot2 ami a legszélesebb körben használt. Ennek oka, hogy a végtelenségig személyreszabható, az R más területein is ez került implementálásra (például, ha webapplikációt írtok ott nem is működik igazán más ábrázoló package.)
+A ggplot2 struktúrája elsőre nagyon bonyolult, másodjára is, viszont fellelhető benne a logika, ami miatt a 3-4. ábra után már dejavu érzése van az embernek, 10-20 után megérti, 50 után pedig már olyan egyszerűvé válik, mint az 1x1.\
+\
+Nézzük is meg az első esetet, mondjuk egy **pálcikaábrát** a virágok darabszámáról a típusok szerinti bontásban!
+Azonban mindenek előtt aktiválnunk kell a package-t  (`library(ggplot2)`), illetve feltelepíteni( `install.packages(ggplot2)`), ha ez korábban még nem történt meg.
+
+```{r fig.height=10, fig.width=10, message=FALSE, warning=FALSE}
+library(ggplot2)
+
+ggplot(iris,aes(Species)) +
+ geom_bar(stat = "count")+
+  xlab("Típus") +
+  ylab ("Darab") +
+  labs(title="A virágtípusok pálcikadiagramja") +
+  theme_bw() + theme(
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+Amit látunk tehát, hogy az ábrázolás a `ggplot` paranccsal kezdődik. Itt definiálni kell, hogy melyik táblának adait szeretnénk felhasználni (`iris`), majd pedig az ábrázoláshoz használt "keretet", ami az `aes`-es belül kap helyet. Itt általában az x és y tengelyen ábrázolt adatokat kell megadni, jelen esetben viszont csak az x-et, hogy miért, azt mindjárt látni fogjuk. A `ggplot`-ot mindig egy `geom` típusú parancs követi. Igazából itt adjuk meg azt, hogy mit ábrázolunk. Jelen esetben a `stat = "count"` jelentése: "számold meg!". Az `aes`-nél pedig azért adtuk meg a Species-t, mert aszerinti bontásban kell elvégeznie.\
+\
+Az ezt követő paraméterek már csak formázási dolgok: `xlab`: x-tengely felírata, `ylab`: y-tengely felírata, `labs(title = ...` / `ggtitle`: A megjelenítendő cím. A `theme_bw()` az ábra kinézetének témáját adja meg. A bw-nél például kap keretet az ábra, illetve láthatóak a szürke segédvonalak a fehér háttéren.\
+Az ezt követő `theme()` blokkon belül egyéb formázási paramétereket lehet megadni: cím, tengelyek kinézetének formázása, ábra terülteének mérete és igazából amit csak el tudtok képzelni. Én minden esetben megadom, hogy mekkora helyet hagyjon a margóktól (`plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")`) és, hogy legyen egy szegélye a teljes ábrázolási felületnek (`plot.background = element_rect(color = "black",size=2)`).\
+
+
+# Halmozott oszlopdiagram
+
+## Kereszttábla
+
+Na száguldjunk is tovább. Miként lehetne egy pálcikadiagramot tovább fejleszteni? Nézzük meg, hogy valamely változó szerint miként oszlanak meg egyes kategóriákban az egyének! Legyen ez például a csészelevelek hossza (Sepal.length). Ez egy mennyiségi ismérv, de pillanatok alatt tudunk belőle kategóriákat is létrehozni. Erre a célra a `cut` függvény lett elrendelve.
+*Tanácsos mindig létrehozni egy új táblázatot (data.frame-t egészen pontosan) és sosem az eredeti adatokat bántani !!!* Amikor valami csak segéd táblázatként akarunk használni, későbbi elémzés céljából nem tulajdonítunk neki nagy hasznot, bevett szokás egyszerűen df (= data.frame) néven létrehozni a `data.frame` kóddal. Ha új oszlopot akarunk neki adni akkor egyszerűen a `$` jellel és egy addig le nem foglalt névvel tudjuk megtenni. Ugyanígy a `$` használható arra is, hogy egy táblázat konkrét nevű oszlopát használjuk. A `cut` függvényben pedig meg kell adni a töréspontokat és a hozzájuk tartozó elnevezéseket. Ezt követően a már nem szükséges oszlopot eltávolíthatjuk legegyszerűbben, ha újradefiniáljuk a frame-et és kihagyjuk azt, ami nem kell. Ezután jön az érdekesség igazán! A `table` függvénnyel állítjuk elő a kereszttáblát (kombinációs tábla, kontingencia-tábla), ami stat I. és II.-ből lehet ismerős, egyes kategória párosításokhoz tartozó gyakoriságokat tartalmazó táblázat. (Itt is, mivel csak egyszer szeretnénk felhasználni, a tbl elnevezés egyelőre megteszi.)
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results="hide"}
+df = data.frame(Species, Sepal.Length)
+df$category <- cut(
+  df$Sepal.Length,
+  breaks = c(-Inf, 5, 6, 7, 8, Inf),
+  labels = c("-5", "5-6", "6-7", "7-8", "8-")
+)
+df = data.frame(df$Species, df$category)
+tbl = table(df)
+tbl
+```
+
+```{r echo=FALSE}
+kable(tbl)
+```
+
+Érdemes felfigyelni arra, hogy a **tbl** típusa jelenleg **table** és nem data.frame. 
+
+```{r}
+class(tbl)
+```
+
+
+Ha ezt módosítjuk (kasztoljuk), akkor a teljes szerkezete át fog alakulni a táblázatnak.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results="hide"}
+df=data.frame(tbl)
+rownames(df)=NULL
+df
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+library(kableExtra)
+kable(df, align = rep("c",3)) %>%
+  kable_styling(full_width = F)
+```
+
+
+Láthatjuk, hogy most a "Species" és "Category" minden kombinációját felsorolja és egy "Freq" oszlopban mutatja az oda tartozó gyakoriságot.
+Ez ideális lesz a számunkra, mert a ggplot éppen ilyen formában kéri a bementi adatokat. \
+\
+Készítsünk hát **halmozott oszlopdiagramot** belőle!\
+A halmozást azzal tudjuk elérni, hogy a `fill=Category` parancstól kitölti a ggplot az oszlopokat színekkel a kategóriák szerint (amit tudunk, hogy a mennyiségi ismérvből általunk képzett kategórák), illetve kell még, hogy a `geom_bar`-ban a `stat = "identity"` kódot megkapja. Az azt követő `color = "black"` a kategóriák közötti szegélyt jelenti. `Color` és `fill` között nagy a különbség, érdemes rá odafigyelni.
+```{r fig.height=10, fig.width=10}
+df=data.frame(tbl)
+names(df)=c("Species","Category","Freq")
+
+ggplot(df, aes(x=Species, y=Freq, fill=Category))+
+geom_bar(width = 0.1, stat = "identity",color="black") +
+labs(title = "Halmozott oszlopdiagram a virágok darabszámáról annak típusa \nés Sepal.length szerinti osztásban") +
+xlab("") +
+ylab("Gyakoriság") +
+theme(
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2),
+    legend.title = element_blank()
+  )
+```
+
+# Kördiagram
+
+Az előzőekben bemutatott oszlopdiagramon ábrázolt adatokat könnyedén  bemutathatjuk kördiagramként is, de most lássunk egy másik technikát. Hozzuk létre először egy táblázatba az ábrázolandó értékeket. A darabszámra legegyszerűbb a `plyr` package-ben lévő `count` függény használat.\ 
+Nézzük meg miként alakítja át az adatainkat!
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results="hide"}
+library(plyr) # for function: count
+df = plyr::count(Species)
+names(df)=c("Típus","Gyakoriság")
+rownames(df)=NULL
+df
+```
+
+```{r echo=FALSE}
+kable(df, align = rep("c",2)) %>%
+  kable_styling(full_width = F)
+```
+
+
+A `names` szolgál arra, hogy a frame oszlopainak nevét megváltoztassuk, a `rownames`, pedig, hogy a sorok nevét megváltoztassuk. Jelen esetben a `NULL` értéket adtam neki, azaz nem lesznek sornevek. Olyankor érdemes sornevet adni, mikor gyakori, hogy egy konkrét értékre hivatkozunk egy táblázatból.\
+\
+Na de lássuk magát a kördiagramot! Itt elég trükkös a ggplot, egy oszlopdiagramot kell készítenünk először, tehát `geom_bar`, majd a `coord_polar` egy körbe gyömöszöli be őket, hogy értsük a ggplot logikáját. Ehhez meg kell neki adni, hogy az y-tengelyt "tekerje fel" és 0-ban kezdje (azaz, ne legyen elforgatva).
+
+```{r fig.height=9.33, fig.width=10}
+ggplot(df, aes(x="", y=Gyakoriság, fill=Típus))+
+geom_bar(width = 1, stat = "identity",color="black") +
+coord_polar("y", start=0) +
+  labs(title="Kördiagram") +
+  ylab("") +
+  theme_void() +
+  theme(
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+\
+Amit még láthatunk, az a `theme_void`: "tüntessen el a háttérből mindent!"\
+\
+Ez így eddig biztosan nem elég, tegyünk felírtokat is arra az ábrára!\
+Erre a `geom_text` blokk lesz a kulcs. Az `x=1, y=cumsum(freq)-freq/2` adja meg a felíratok helyét. Mivel a freq egy vektor, így ezek az értékek is vektorok lesznek, tehát most mindegyik felírat helyét megadtuk a működösének megértéséhez továbbra is abban kell gondolkodunk, hogy ez egy oszlopdiagram, amiket most jól összenyomunk (vagy a ggplot logikája nagyon klinikai eset vagy az enyém). A `label` pedig magának a felíratnak a szövegét adja meg.
+
+```{r fig.height=9.33, fig.width=10}
+df = plyr::count(Species)
+ggplot(data=df)+
+  geom_bar(aes(x="", y=freq, fill=x), stat="identity", width = 1,color="black")+
+  coord_polar("y", start=0)+
+  ggtitle("Kördiagram a darabszámok megjelenítésével") +
+  geom_text(aes(x=1, y = cumsum(freq) - freq/2, label=freq)) +
+  theme_void()+ theme(
+    legend.title = element_blank(),
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+Felmerülhet persze az igény, hogy százalékos formában ábrázoljunk. Semmi akadálya. kezdjünk neki úgy, mint az előbb! Azonban mikor megvan a gyakoriságokat tartalmazó frame, az értékekből elkészültek a megoszlási viszonyszámok, akkor készítsünk el mellé egy "label" nevű oszlopot, ami százalékos formában tartalmazza az értékékek. Hogy ezek százalékban legyenek kell egy új package a `scales`, amiben van `percentage` függvény.
+
+```{r fig.height=9.33, fig.width=10, 5, fig.width=10}
+library(scales)
+df = plyr::count(Species)
+df$freq=df$freq/sum(df$freq)
+df$label=percent(df$freq)
+ggplot(data=df)+
+  geom_bar(aes(x="", y=freq, fill=x), stat="identity", width = 1,color="black")+
+  coord_polar("y", start=0)+
+  ggtitle("Kördiagram a százalékos megoszlások megjelenítésével") +
+  geom_text(aes(x=1, y = cumsum(freq) - freq/2, label=label)) +
+  theme_void()+ theme(
+    legend.title = element_blank(),
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+# Empirikus sűrűségfüggvény
+
+Eddig túlestünk azon, miket tudunk csinálni akkor, ha az ismérveink nominálisak, lássuk a mennyiségi ismérvek ábráit!
+Elsőkörben megnézhetjük egy sokasság eloszlását (sűrűségét).
+Mostanra nem lesz már több nehezítés a ggplot szerkezeti felépítése ugyanaz, csak mi most más ábratípust fogunk kérni. Ez pedig a `geom_density` lesz. Csináljuk meg ezt a Sepal.Length-en!
+
+```{r fig.height=10, fig.width=10, paged.print=FALSE}
+ggplot(iris,aes(Sepal.Length)) +
+  geom_density() +
+  theme(
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+Ez eddig elég csúnya és a legfontosabbat nem látjuk: a viszonytási alapunkat. Ha vannak még stat I.-es vagy valszámos emlékek egy eloszlást mindig szeretünk a vele azonos várható értékű és szórású normális eloszláshoz hasonlítani, ebből számíthatjuk a csúcsosságot és lapultságot. Pofozzuk hát ki ezt az ábrát! Normál eloszlást a dnorm függvénnyel tudunk megadni, aminek szüksége lesz a várható érték és szórás specifikálására is. A kódsor kicsit rémisztő elsőre, itt valóban el kell tölteni több időt, hogy megértsük, alkalmazása bőven túlmegy az egyszerű R programozásos feladatokon, de fontos megjegyezni, hogy miként varázsolunk a háttérbe normál eloszlást. \
+\
+A `scale_x_continuous` talán a legfontosabb paraméter egy ggplot-on, de legalábbis a legbosszantóbb, ha nincs fenn. Ezzel adható meg, hogy a tengelyek, illetve ábrák szegélyei között legyen-e üres terület (`expand=c(0,0)`, ha ne legyen), illetve a tengelyek határai (`limits`), de az osztásközök is (`limits` / `break`).
+
+```{r fig.height=10, fig.width=10}
+ggplot(data = iris) +
+ geom_density(aes(Sepal.Length), position = "stack",size=1.5) + 
+  stat_function(fun = dnorm, args = list(mean = mean(Sepal.Length), sd = sd(Sepal.Length)),color="red",size=1.5,linetype = "dashed") +
+  scale_x_continuous(expand = c(0,0)) +
+  ggtitle("A Sepal.Length változó sűrűség-görbéje \naz azonos várható értékkel és szórással rendelkező normál eloszláshoz hasonlítva") +
+  theme(
+    plot.title = element_text(color="black", size=14, hjust=0.5, face="bold"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+Most már egészen sokmindent megváltoztattunk ezen az ábrán: a normál eloszlás színét (`color`), a vonal típusát (`linetype`) szaggatottra (`dashed`), illetve a cím kinézetét is (fekete, 14-es betűméret, horizontálisan középre, vastaggal).\
+\
+
+## Jelmagyarázat
+
+Adjuk még rá magyarázatként, hogy mi micsodát jelöl!
+
+```{r fig.height=10, fig.width=10, message=FALSE, warning=FALSE}
+ggplot(data = iris) +
+ geom_density(aes(Sepal.Length, color="Empirikus sűrűségfüggvény"), position = "stack",size=1.5) + 
+  stat_function(fun = dnorm, args = list(mean = mean(Sepal.Length), sd = sd(Sepal.Length)),aes(color="Azonos várható értékő és szórású normáleloszlás sűrűségfüggvénye"),size=1.5,linetype = "dashed") +
+    scale_color_manual(values = c("Empirikus sűrűségfüggvény" = "black","Azonos várható értékő és szórású normáleloszlás sűrűségfüggvénye" = "red")) +
+  scale_x_continuous(expand = c(0,0)) +
+  ggtitle("A Sepal.Length változó sűrűség-görbéje \naz azonos várható értékkel és szórással rendelkező normál eloszláshoz hasonlítva") +
+  theme(
+    legend.title = element_blank(),
+    legend.position = "bottom",
+    plot.title = element_text(color="black", size=14, hjust=0.5, face="bold"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+A jelmagyarázat használata szintén fura logikát követ. Mindig meg kell adni, hogy mi szerint legyen a jelmagyarázat (szín, pontdiagramoknál esetleg eltérő alakú pontok, stb.).
+Ha valamit szeretnénk jelmagyarázatba tenni, akkor azt, hogy mi szerint, azt az `aes` szakaszban kell megadni, a jelmagyarázaton feltüntetett nevével együtt (`aes(color="Azonos várható értékő és szórású normáleloszlás sűrűségfüggvénye")`). Ezután egy külön blokkaban (`scale_color_manual`) kell megadni, hogy minek milyen színt adunk (vagy formát más esetben). Én jelen esetben levettem a jelmagyarázat címét (`legend.title = element_blank()`) a `theme` blokkban, mert nem szeretném feltűntetni, hogy a `color` szerint különböztettem meg őket. A `legend.position = "bottom` parancs pedig alulra helyezi a jelmagyarázatot és nem oldalra, ami az alapbeállítás.
+
+
+# Hisztogram (+ facet_grid)
+
+Mennyiségi ismérvek másik fontos ábrázolási metódusa a hisztogram. Ez egyszerűen a `geom_histogram` parancscal hívható, de bolondítsuk meg a dolgokat! Ábrázoljuk az összes mennyiségi ismérv hisztogramját egy ábrán egymás alatt! A ggplot a bemeneti adatok szerkezetét tekintve szükségel egy oszlopot, amely az értékeket tárolja (ha x és y tengelye is van egy ábrának, amit nekünk kell megadni és "nem belül számítódik", akkor mindkettő kell neki, de most nem ez a helyzet), illetve megadja, mely változó értékéről beszéünk, hogy el tudjuk különíteni őket.\
+\
+Tehát át kell alakítani az adataink szerkezetét. Szerencsénkre ez gyakori parancs, ezért létezik rá függény a `tidyr` package-ben. Ez a függény a `gather` lesz, mely szintén csúnyának néz ki elsőre, ennek ellenére logikus. Meg kell adni neki egy `key` paramétert és egy `value` paramétert. Itt az fog történni, hogy minden oszlopot két oszlopba gyúr, ahol az első (key) fogja tárolni az oszlop nevét, ahonnan jött, és a második (value) az értéket. Azonban ha egy oszlopot nem akarunk, hogy felhasználjon egyszerűen a végén egy `-` jelet követően megadjuk az oszlop nevét. Érdemes megnézni, hogy fog kinézni az új frame (merthogy data.frame marad a típusa az adatoknak továbbra is)!
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results="hide"}
+library(tidyr)
+df = iris %>% gather(key = "variable", value = "value",-Species)
+head(df)
+```
+  
+```{r echo=FALSE}
+kable(head(df), align = rep("c",3)) %>%
+  kable_styling(full_width = F)
+```
+  
+  
+Nekünk ez mostanra már megfelel, bár a `Species` változóra egyáltalán nincs szükségünk, nekünk ebből csak a `value` kell, hiszen a hisztogramon egyetlen egy mennyiségi ismérvet ábrzolunk egyszerre, illetve a `variable`, hogy tudjuk mi alapján különítsük el a hisztogramokat.\
+\
+Külön ábrákat egymás alá forrasztva a `facet_frid` paranccsal tudunk létrehozni. Tekintsük meg, hogy minként működik!
+  
+```{r fig.height=10, fig.width=10, message=FALSE, warning=FALSE}
+ggplot(df, aes(x = value)) +
+  geom_histogram(color = "black", fill = "white") +
+  facet_grid(variable ~ .) +
+  scale_y_continuous(expand = c(0, 1)) +
+  labs(title = "A változók hisztogramjai") +
+  ylab("Gyakoriság") +
+  xlab("Centiméter") +
+  theme(
+    plot.title = element_text(color="black", size=14, hjust=0.5, face="bold"),
+    axis.title=element_text(size=13),
+    legend.position = "none",
+    axis.text.x = element_text(colour = "black", size = 11),
+    axis.text.y = element_text(colour = "black", size = 11),
+    strip.text.y = element_text(size = 11),
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2)
+    )
+```
+
+Látható, hogy az x-tengelyen feltüntetett értékek teljesen megegyeznek. Kimondottan előnyösen ez a `facet`, ha több változót kell összemérni egymással (Például y-tengelyen teljesen már intevallumban mozognak, de x-tengely szerint mégis szeretnénk őket összemérni. Azaz az egyik változó 0-10-ig vesz fel értékeket, másik milliósakat, ha egy ábrán lennének, akkor valamelyik bizonyosan nem látszódna).
+
+# Dobozábrák
+
+Lássuk mit lehet tenni még, ha egy mennyiségi ismérvet szeretnénk egy minőségi ismérv szerint bontani. Legyen ez most továbbra is a csészelevelek hosszának az egyed fajtája szerinti csoportosítás. Erre a megoldás a dobozábra (boxplot).\
+A ggplot szerkezete változatlan, az adattábla és a tengelyeken ábrázolt értékek specifikálása után hívjunk meg egy `geom_boxplot`-ot!
+
+```{r fig.height=10, fig.width=10}
+df=data.frame(Sepal.Length,Species)
+ggplot(df,aes(x=Species,y=Sepal.Length)) +
+  geom_boxplot() + theme(
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+Na ezzel még mindig nem lettünk az adatvizualizáció felkent papjai, hát fűszerezzünk!\
+Elsőként is adjunk színt a dobozoknak a fajták szerint (vigyázat, `fill` és nem `color`)! A ggplot számos kiegészítő package-el rendelkezik, lássunk egyet! A `theme_bw()`, `theme_classic`, `theme_minimal` mellett van egy `ggthemes` nevű package, ami tele van mókás témákkal. Köztük például a legfontosabb folyóíratunk a *The Economist* ábratípusát is tartalmazza.
+
+```{r fig.height=10, fig.width=10}
+library(ggthemes)
+df=data.frame(Sepal.Length,Species)
+ggplot(df,aes(x=Species,y=Sepal.Length, fill=Species)) +
+  geom_boxplot(size=1.2) +
+  theme_economist() +
+  scale_fill_economist() +
+  theme(
+    axis.title = element_blank(),
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+Kezd elmenni. Mit látunk? A dobozábra vízszintes vonalai a **3 kvartilist** adják meg. Függőleges vonalainak hossza pedig a szélső kvartilisektől indulva az interkvartilis terjedelem 1.5-szörösét megtéve a legnagyobb/legkisebb érték helyét jelölik. Aki ezeken a határokon kívül esik az outlier néven pontként kerül megjelölésre az ábrán.
+
+# Heatmap (korrelációk-mátrixa)
+
+Közgazdászok kincsesbányaja mikor végre mennyiségi ismérvet lehet összehasonlítani mennyiségi ismérvekkel. Mikor pedig 150 megfigyelésről van több mennyiségi ismérv rögzítve, az maga a kánaán. De ábrázolás tekintetében hol kezdjünk neki? Ábrázoljuk az összes korrelációt egy mátrixban! Az R-be beépített `cor` függvény éppen ezt csinálja (csak előtte távolítsuk el a minőségi ismérvet, a virágfajtáját, rá most nem lesz szükség (`subset`)).
+
+```{r echo=TRUE, message=FALSE, warning=FALSE, results="hide"}
+df <- subset(iris, select = -c(Species))
+cor(df)
+```
+
+```{r echo=FALSE}
+kable(cor(df), align = rep("c",4)) %>%
+  kable_styling(full_width = F)
+```
+
+\
+Érdemes megfigyelni (`class`), hogy az így kapott táblázatnak mi a típusa. Ez bizony egy márix nem pedig data.frame.
+
+```{r}
+df <- subset(iris, select = -c(Species))
+MyCorMat <- cor(df)
+class(MyCorMat)
+```
+
+Mivel egészen más műveletek megengedettek mátrixokon és frame-eken (szerencsére a kasztolás egy pillanat, mégis végtelen fejfájást és kettétört asztalok táborát tudja okozni, ha nem szentelünk a későbbiekben kellő figyelmet az adataink típusára.), így váltsuk át frame-re. Ezt követően a sorok neveit, adjuk hozzá a frame-hez, annak érdekében, hogy egy a ggplot számára szükséges formára hozzuk az adatokat a `gather`-rel.
+
+```{r}
+df <- subset(iris, select = -c(Species))
+MyCorMat <- cor(df)
+MyCorMat=data.frame(MyCorMat)
+MyCorMat$v1=rownames(MyCorMat)
+df = MyCorMat %>% gather(key = "v2", value = "value",-v1)
+```
+Most viszont a `v1`, azaz a korrelációs-mátrix sorainak nevei direkt nem kerültek ömlesztésre, mert használni fogjuk őket.
+A `geom_tile` éppen arra való, hogy mátrixok értékei ábrázolja.
+
+```{r fig.height=10, fig.width=10}
+ggplot(df, aes(v1, v2, fill = value)) +
+  geom_tile() +theme(
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+Na ilyen rémet még nem látott a Föld, javítsuk azonnal!
+A `scale_fill_gradient2` ad lehetőséget arra, hogy a színeket és azok skáláit megváltoztassuk. Valamiért elterjedt az a társadalmi előítélet, hogy a lányok sokkal több színt ismernek, mint a fiúk (májva, zöldek és kékek végtelenje), de hadd cáfoljam. Az én kedvenc színem a `#FF5B6B` (ez egy piros és rózsaszín közötti valami)! Lényeg a lényeg, bármilyen színt megadhattok itt az ábrához, csak úgy, mint eddig a bárhol. Le lehet cserélni a `"black"`-et, amire csak szeretnétek. A `geom_tile`-ban a `color` pedig csak a rácsvonalak színét adja (`color` még mindig nem ugyanaz, mint a `fill`).
+
+```{r fig.height=9, fig.width=10}
+ggplot(df, aes(v1, v2, fill = value)) +
+  geom_tile(color="black") +
+  scale_fill_gradient2(low = "#00A3AB",mid = "white", high = "#FF5B6B", 
+  midpoint = 0,limits=c(-1,1)) +
+  scale_x_discrete(expand = c(0,0)) +
+  scale_y_discrete(expand = c(0,0)) +
+  ggtitle("A változóink korrelációinak mátrixa \n(hőtérkép)") +
+  theme_bw() + theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.title = element_blank(),
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2),
+    legend.title = element_blank()
+  )
+```
+
+# Pontdiagram
+
+Előző ábránkból megtudtuk, hogy a csészelevél és sziromlevél hossza erősen korrelál egymással. Fókuszáljunk erre a kapcsolatra egy pillanat erejéig!
+Mit használtunk ilyenkor stat I.-en? Helyes. Pontdiagram!
+Csináljuk: `geom_point`
+```{r fig.height=10, fig.width=10}
+df=data.frame(Petal.Length,Petal.Width)
+ggplot(df)+ 
+  geom_point(aes(x=Petal.Length,y = Petal.Width)) +
+  theme(
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black",size=2)
+  )
+```
+
+Na szép (vagyis épp nem). Érdemes lenne egy regressziós egyenes felvenni.
+Ennek sajnos legegyszerűb módja, hogy tényleg futtatunk egy OLS-t (`lm`) és a koefficiensekből előállítjuk az egyenest.
+```{r}
+Mylm=lm(Petal.Width~Petal.Length,df)
+```
+
+Megvan a modell kérjük le a koefficienseket (`$coefficients`) és legyen ezekből egy új változó (`fitted`) az ábrázolandó adattáblában.
+```{r}
+Myfitted=Mylm$coefficients[1]+Mylm$coefficients[2]*Petal.Length
+df$fitted=Myfitted
+```
+
+Egy vonaldiagramot pedig a `geom_line` segítségével tudunk feltenni a pontdiagram mellé.
+Állítsunk neki valami más színt is, hogy nézzen ki valahogy. A rajzolt pontokat is módosítsuk: legyenek fekete szegélyű fehér "körök" (`shape=21`)!
+
+```{r fig.height=10, fig.width=10}
+ggplot(df) +
+  geom_point(
+    aes(x = Petal.Length, y = Petal.Width),
+    shape = 21,
+    fill = "white",
+    color = "black",
+    size = 4,
+    stroke = 2
+  ) +
+  geom_line(aes(x = Petal.Length, y = fitted, color = "red"),
+            linetype = "dashed",
+            size = 2) +
+  labs(title = "Petal.Length és Petal.Width közötti korreláció ábrázolása \npontdiagram segítségével") +
+  theme(
+    plot.title = element_text(
+      color = "black",
+      size = 14,
+      hjust = 0.5,
+      face = "bold"
+    ),
+    axis.title = element_text(size = 15),
+    legend.position = "none",
+    axis.text.x = element_text(colour = "black", size = 11),
+    axis.text.y = element_text(colour = "black", size = 11),
+    axis.line.x.top = element_line(colour = "black", size = 1),
+    axis.line.x.bottom = element_line(colour = "black", size = 1),
+    axis.line.y.left = element_line(colour = "black", size = 1),
+    axis.line.y.right = element_line(colour = "black", size = 1),
+    axis.ticks.x.bottom = element_line(colour = "black", size = 1),
+    axis.ticks.y.left = element_line(colour = "black", size = 1),
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black", size = 2)
+  )
+```
+
+Ilyen párba állított pontdiagramok effektív rajzolására egyébként hatékonyabb az alapból beépített `pairs` függvény, de ne feledjük, annak a módosítása igen limitált, meg sem közelíthetjük kinézetre a ggplottal készült ábrákat. (cserébe egyszerű, kivéve amikor nem, mert ha az ember egyszer megérti a ggplot működési logikáját, akkor az mindig ugyanaz, míg a beépített ábrák sosem akarnak ugyanolyan logikát követni.)
+
+```{r fig.height=10, fig.width=10}
+pairs(iris[1:4], main = "Edgar Anderson's Iris Data", pch = 21,
+bg = c("red", "green3", "blue")[unclass(iris$Species)])
+```
+
+# One more thing!
+
+Készítsünk interaktív ábrát!\
+Ehhez a `plotly` package lehet segítségünkre, de az alapját egy ggplottal készült ábra adja. Sajnos számos módon át fog alakulni az ábra (rácsvonalak eltűnnek), mert a plotly is limitációkkal bír. Továbbá, ha shiny webaplikációt készítünk, az nem is támogatja a plotly-t, míg a ggplot2-vel készült ábrák ott ugyanolyanok maradnak, ellenben interaktívak.
+De most vissza ide...\
+Különbség most az, hogy a teljes ggplottal készült ábrát, most egy paraméternek kell értékül adni, legyen `p`.
+Beírjuk a `ggplotly` nevű függvényt, egyik bemeneti paramétere az ábránk (`p`), másik pedig a felirat, amit mutasson mikor egy cella fölé helyezzük az egeret (`tooltip`).
+
+```{r fig.height=7, fig.width=8, message=FALSE, warning=FALSE}
+library(plotly)
+
+df <- subset(iris, select = -c(Species))
+MyCorMat = data.frame(cor(df))
+MyCorMat$v1 = rownames(MyCorMat)
+df = MyCorMat %>% gather(key = "v2", value = "value", -v1)
+
+p <- ggplot(df, aes(v1, v2, fill = value)) +
+  geom_tile(color = "black") +
+  scale_fill_gradient2(
+    low = "#00A3AB",
+    mid = "white",
+    high = "#FF5B6B",
+    midpoint = 0,
+    limits = c(-1, 1)
+  ) +
+  scale_x_discrete(expand = c(0, 0)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  ggtitle("A változóink korrelációinak mátrixa") +
+  theme_bw() + theme(
+    plot.title = element_text(hjust = 0.5),
+    axis.title = element_blank(),
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"),
+    plot.background = element_rect(color = "black", size = 2),
+    legend.title = element_blank()
+  )
+
+ggplotly(p, tooltip = "value")
+```
+\
+Gyönyörű !!! <3
+
+Ha ezek után esetleg mégis kétségek vannak a ggplot függvények kapcsán, javasolt használat közben mindig kéznél tartani egy puskát:
+http://www.rstudio.com/wp-content/uploads/2015/03/ggplot2-cheatsheet.pdf

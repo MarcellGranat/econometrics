@@ -1,0 +1,33 @@
+---
+title: "Republikánus szavazók elemzése (logit)"
+author: "Granát Marcell"
+date: '2020-06-01'
+output: github_document
+---
+
+## Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F,message = F, comment = "")
+```
+
+```{r}
+library(tidyverse)
+load("republicans_df.RData")
+```
+
+```{r}
+comment(republicans) <- "test comment"
+cat(comment(republicans))
+```
+
+```{r}
+names(republicans) <- c("repub", "age", "npplinhouse", "city", "countryside", "town", "origin", "govinsuff", "govintervence", "govsupplement", "budget", "blackdisadv", "migrants", "marriage", "military", "worldandus", "socialdepedence", "multis", "profit", "candidate", "usasuccess", "news", "homosex", "satisfied", "incomedoubt", "religionneed", "militarybest", "migrantswant", "addupliberty", "govmust", "usablackequal", "supppoor", "islam", "moreto", "homosex", "weed", "sex", "na", "int_age_sex", "int_npplinhouse_sex", "school", "latin", "race", "maritalstatus", "religion", "income", "naa", "employment", "employment1", "employment2", 'employment3', 'employment4', 'employment5', 'employment6', 'employment7', 'employment8', 'employment9', 'd_income1', 'd_income2', 'd_income3', 'd_income4', 'd_income5', 'd_income6', 'd_income7', 'd_income8', 'd_income9', 'd_income10')
+```
+
+
+```{r}
+republicans %>% glm(formula = RepulikAnus ~ ., family = "binomial")
+```
+
+

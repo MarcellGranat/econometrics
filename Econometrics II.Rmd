@@ -1,0 +1,347 @@
+---
+title: "Econometrics II"
+author: "Granát Marcell"
+date: '2020-06-01'
+output: github_document
+---
+
+## Setup
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = F, message = F, comment = "", cache = T)
+```
+
+```{r}
+library(tidyverse)
+```
+
+## Session 1
+
+```{r}
+utas <- readr::read_csv("Utas95_teljes.csv")
+```
+
+### Polinominal trend
+
+```{r}
+library(forecast) # autoplot to ts object
+
+utas %>%
+  .$buszMfo %>%
+  ts(start = 1995, frequency = 4) %>%
+  autoplot(size = 1)
+```
+
+```{r}
+utas %>% head()
+```
+
+#### Dummies
+
+```{r}
+periodic_dummies <- str_remove(utas$obs, ".*Q") %>%
+  mlr::createDummyFeatures() %>%
+  setNames(str_c("Q", names(.)))
+
+periodic_dummies %>% head()
+```
+
+```{r}
+effect_dummies <- periodic_dummies %>%
+  mutate_all(
+    function(x) (x - .$Q4)
+  ) %>%
+  select(-Q4) %>%
+  set_names(str_c("K", 1:3))
+
+effect_dummies %>% head()
+```
+
+```{r}
+design_matrix <- utas %>%
+  select(buszMfo) %>%
+  mutate(
+    time = seq_along(buszMfo),
+    time2 = time^2,
+    time3 = time^3
+  ) %>%
+  cbind(effect_dummies)
+
+design_matrix %>% head()
+```
+
+```{r}
+model1 <- design_matrix %>% lm(formula = buszMfo ~ .)
+```
+
+```{r}
+model1 %>%
+  broom::tidy() %>%
+  knitr::kable(caption = "OLS paraméterei")
+```
+
+```{r}
+model1 %>%
+  broom::augment() %>%
+  select(buszMfo, .fitted) %>%
+  setNames(c("actual", "fitted")) %>%
+  ts(start = 1995, frequency = 4) %>%
+  autoplot(size = 1) + ggtitle("Model1")
+```
+
+### Structural break
+
+```{r}
+design_matrix <- utas %>%
+  mutate(
+    year = as.numeric(str_remove(obs, "Q.*")),
+    const2 = ifelse(year >= 2002 & year < 2010, 1, 0),
+    const3 = ifelse(year >= 2010, 1, 0),
+    time = seq(nrow(utas)),
+    time2 = time * const2,
+    time3 = time * const3
+  ) %>%
+  select(-obs, -year)
+```
+
+```{r}
+model2 <- design_matrix %>% lm(formula = buszMfo ~ .)
+
+model2 %>%
+  broom::tidy() %>%
+  knitr::kable(caption = "model2 paraméterei")
+```
+
+```{r}
+model2 %>%
+  broom::augment() %>%
+  select(buszMfo, .fitted) %>%
+  setNames(c("actual", "fitted")) %>%
+  ts(start = 1995, frequency = 4) %>%
+  autoplot(size = 1) + ggtitle("Model2")
+```
+
+```{r}
+design_matrix <- design_matrix %>% cbind(effect_dummies)
+
+model3 <- design_matrix %>% lm(formula = buszMfo ~ .)
+
+model3 %>%
+  broom::tidy() %>%
+  knitr::kable(caption = "model3 paraméterei")
+```
+
+```{r}
+model3 %>%
+  broom::augment() %>%
+  select(buszMfo, .fitted) %>%
+  setNames(c("actual", "fitted")) %>%
+  ts(start = 1995, frequency = 4) %>%
+  autoplot(size = 1) + ggtitle("Model3")
+```
+
+## BJ6
+
+```{r}
+BJ_6 <- readr::read_csv("BJ_6.csv")
+```
+
+```{r}
+y <- BJ_6$Y %>% ts(start = 1900, frequency = 4)
+
+y %>% autoplot(size = 1)
+```
+```{r}
+y %>% aTSA::stationary.test(nlag = 20)
+```
+```{r}
+d_y <- diff(y)
+
+d_y %>% autoplot(size = 0.6)
+```
+
+```{r}
+model4 <- BJ_6$obs %>%
+  str_remove(".*Q") %>%
+  mlr::createDummyFeatures() %>%
+  setNames(str_c("Q", names(.))) %>%
+  select(-Q4) %>%
+  tail(-1) %>%
+  mutate(
+    d_y = d_y
+  ) %>%
+  lm(formula = d_y ~ .)
+
+model4 %>%
+  broom::tidy() %>%
+  knitr::kable(caption = "szezonalitás hatások")
+
+model4_res <- model4$residuals %>% ts(start = c(1900, 2), frequency = 4)
+```
+
+```{r}
+model4_res %>% autoplot(size = .6)
+```
+
+```{r}
+model4_res %>% aTSA::stationary.test(nlag = 20)
+```
+```{r}
+model4_res %>% forecast::ggtsdisplay()
+```
+
+```{r}
+arma1 <- arima(model4_res, order = c(2, 0, 0), include.mean = T)
+arma1
+```
+
+```{r}
+arma2 <- arima(model4_res, order = c(2, 0, 0), include.mean = F)
+arma2
+```
+
+```{r}
+arma3 <- model4_res %>% arma(order = c(2, 1), include.intercept = F)
+arima(model4_res, order = c(2, 0, 1), include.mean = F)
+arma3
+```
+
+```{r}
+checkresiduals(arma2)
+```
+
+```{r echo=FALSE, fig.height=.2}
+knitr::include_url("https://latex.codecogs.com/svg.latex?%5Cdpi%7B120%7D%20%7B%5Ccolor%7BOrange%7D%20%5CDelta%20y_%7Bt%7D%20%3D%203%2C23%20-%208%2C72%20d_%7B1%7D%20-%200%2C9d_%7B2%7D%20-%203%2C3%20d_%7B3%7D%20&plus;%20v_%7Bt%7D%7D")
+```
+
+```{r echo=FALSE, fig.height=.2}
+knitr::include_url("https://latex.codecogs.com/svg.latex?%5Cdpi%7B120%7D%20%7B%5Ccolor%7BOrange%7D%20v_%7Bt%7D%20%3D%200%2C53%20v_%7Bt-1%7D%20-%200%2C21%20v_%7Bt-2%7D%20&plus;%20u_%7Bt%7D%7D")
+```
+
+```{r echo=FALSE, fig.height=.2}
+knitr::include_url("https://latex.codecogs.com/svg.latex?%5Cdpi%7B120%7D%20%7B%5Ccolor%7BOrange%7D%20u_%7Bt%7D%20%3D%20white%5C%20noise%7D")
+```
+
+
+```{r}
+predict_df <- expand.grid(1900:2005, c("Q1", "Q2", "Q3", "Q4")) %>%
+  setNames(c("year", "Q")) %>%
+  arrange(year)
+
+predict_df["dy_v"] <- c(
+  NA, model4$fitted.values,
+  predict.lm(object = model4, newdata = predict_df$Q %>% mlr::createDummyFeatures() %>% select(-Q4) %>% tail(nrow(predict_df) - nrow(BJ_6)))
+)
+
+arma2$fitted.values
+```
+
+
+```{r}
+predict_df["v"] <- c(
+  NA, fitted(arma2),
+  predict(arma2, n.ahead = 24)$pred
+)
+```
+
+```{r}
+predict_df["actual"] <- c(
+  BJ_6$Y, rep(NA, 24)
+)
+```
+
+```{r}
+predict_df <- predict_df %>% mutate(
+  fitted = c(actual[1], tail(predict_df$dy_v,-1) + tail(predict_df$v,-1)),
+  fitted = cumsum(fitted)
+)
+```
+
+```{r}
+predict_df %>% select(actual, fitted, dy_v) %>% 
+  mutate(
+    time = str_c(predict_df$year, "Q", 1:4)
+  ) %>% gather(key = "key", value = "value", -time) %>% mutate(
+    t = rep(1:nrow(predict_df), 3)
+  ) %>% ggplot() + geom_line(aes(x = t, y = value, color = key), size = .5)
+```
+
+## BJ5 megoldás
+
+```{r}
+BJ_5 <- readr::read_csv("BJ_5.csv")
+```
+
+```{r}
+BJ_5$Y %>% ts(start = 1900, frequency = 4) %>% autoplot()
+```
+
+Nem találtam még kvadratikus regresszióval működő adftesztet. Más tesztekhez lehet megadni
+
+```{r}
+ols_model <- BJ_5 %>% select(-obs, -dq1) %>% lm(formula = Y ~ .)
+
+ols_model %>% broom::tidy() %>% knitr::kable(caption = "OLS eredményei")
+```
+
+```{r}
+Y <- ols_model$residuals %>% ts(start = 1990, frequency = 4)
+
+Y %>% forecast::ggtsdisplay()
+```
+
+```{r}
+Y %>% Box.test(lag = 1, type = "Ljung-Box")
+```
+
+```{r}
+arma <- Y %>% auto.arima(seasonal = F, trace = T, approximation = F)
+```
+
+```{r}
+auto.arima(y = ts(BJ_5$Y), seasonal = F, trace = F, approximation = F, xreg = as.matrix(BJ_5 %>% select(-obs, -dq1, -Y)))
+```
+
+itt még a konstans nem teljesen világos, kicsit más megoldást is ad
+
+## BJ10 megoldása
+
+```{r}
+BJ_10 <- readr::read_csv("BJ_10.csv")
+```
+
+```{r}
+Y <- BJ_10$Y %>% ts(start = 1900, frequency = 4)
+
+Y %>% autoplot()
+```
+
+```{r}
+Y %>% aTSA::stationary.test()
+```
+
+```{r}
+ld_Y <- Y %>% log() %>% diff()
+ld_Y %>% autoplot()
+```
+
+```{r}
+ld_Y %>% Box.test(lag = 1, type = "Ljung-Box")
+```
+
+```{r}
+ld_Y %>% forecast::ggtsdisplay()
+```
+
+```{r}
+arima <- ld_Y %>% auto.arima(trace = T, approximation = F, seasonal = F)
+```
+
+```{r}
+arima %>% checkresiduals()
+```
+
+```{r}
+forecast(arima, h = 24) %>% autoplot()
+```
+
