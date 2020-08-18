@@ -10,3 +10,5 @@ stringr
 forcats
 forecast
 tseries
+kableExtra
+urca

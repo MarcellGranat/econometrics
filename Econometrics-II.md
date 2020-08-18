@@ -472,8 +472,8 @@ sigma^2 estimated as 0.9654:  log likelihood = -559.29,  aic = 1124.57
 ```
 
 ``` r
-arma3 <- model4_res %>% arma(order = c(2, 1), include.intercept = F)
-arima(model4_res, order = c(2, 0, 1), include.mean = F)
+arma3 <- arima(model4_res, order = c(2, 0, 1), include.mean = F)
+arma3
 ```
 
 ``` 
@@ -487,20 +487,6 @@ Coefficients:
 s.e.  0.2464   0.1133   0.2546
 
 sigma^2 estimated as 0.9653:  log likelihood = -559.25,  aic = 1126.51
-```
-
-``` r
-arma3
-```
-
-``` 
-
-Call:
-arma(x = ., order = c(2, 1), include.intercept = F)
-
-Coefficient(s):
-    ar1      ar2      ma1  
- 0.7558  -0.3054  -0.2446  
 ```
 
 ``` r
@@ -545,18 +531,23 @@ predict_df["actual"] <- c(
 
 ``` r
 predict_df <- predict_df %>% mutate(
-  fitted = c(actual[1], tail(predict_df$dy_v,-1) + tail(predict_df$v,-1)),
+  fitted = c(actual[1], tail(predict_df$dy_v, -1) + tail(predict_df$v, -1)),
   fitted = cumsum(fitted)
 )
 ```
 
 ``` r
-predict_df %>% select(actual, fitted, dy_v) %>% 
+predict_df %>%
+  select(actual, fitted, dy_v) %>%
   mutate(
     time = str_c(predict_df$year, "Q", 1:4)
-  ) %>% gather(key = "key", value = "value", -time) %>% mutate(
+  ) %>%
+  gather(key = "key", value = "value", -time) %>%
+  mutate(
     t = rep(1:nrow(predict_df), 3)
-  ) %>% ggplot() + geom_line(aes(x = t, y = value, color = key), size = .5)
+  ) %>%
+  ggplot() +
+  geom_line(aes(x = t, y = value, color = key), size = .5)
 ```
 
 ![](Econometrics-II_files/figure-gfm/unnamed-chunk-35-1.png)<!-- -->
@@ -568,7 +559,9 @@ BJ_5 <- readr::read_csv("BJ_5.csv")
 ```
 
 ``` r
-BJ_5$Y %>% ts(start = 1900, frequency = 4) %>% autoplot()
+BJ_5$Y %>%
+  ts(start = 1900, frequency = 4) %>%
+  autoplot()
 ```
 
 ![](Econometrics-II_files/figure-gfm/unnamed-chunk-37-1.png)<!-- -->
@@ -577,21 +570,270 @@ Nem találtam még kvadratikus regresszióval működő adftesztet. Más
 tesztekhez lehet megadni
 
 ``` r
-ols_model <- BJ_5 %>% select(-obs, -dq1) %>% lm(formula = Y ~ .)
+ols_model <- BJ_5 %>%
+  select(-obs, -dq1) %>%
+  lm(formula = Y ~ .)
 
-ols_model %>% broom::tidy() %>% knitr::kable(caption = "OLS eredményei")
+ols_model %>%
+  broom::tidy() %>%
+  knitr::kable(caption = "OLS eredményei")
 ```
 
-| term        |    estimate | std.error |  statistic | p.value |
-| :---------- | ----------: | --------: | ---------: | ------: |
-| (Intercept) |   2.9707798 | 0.1929017 |   15.40049 |       0 |
-| t           |   0.0544518 | 0.0019299 |   28.21464 |       0 |
-| dq2         |   2.4182479 | 0.1572062 |   15.38265 |       0 |
-| dq3         |   2.1348211 | 0.1572084 |   13.57956 |       0 |
-| dq4         |   5.3674236 | 0.1572120 |   34.14130 |       0 |
-| sq\_t       | \-0.0000678 | 0.0000047 | \-14.53692 |       0 |
+<table>
+
+<caption>
 
 OLS eredményei
+
+</caption>
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+term
+
+</th>
+
+<th style="text-align:right;">
+
+estimate
+
+</th>
+
+<th style="text-align:right;">
+
+std.error
+
+</th>
+
+<th style="text-align:right;">
+
+statistic
+
+</th>
+
+<th style="text-align:right;">
+
+p.value
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+(Intercept)
+
+</td>
+
+<td style="text-align:right;">
+
+2.9707798
+
+</td>
+
+<td style="text-align:right;">
+
+0.1929017
+
+</td>
+
+<td style="text-align:right;">
+
+15.40049
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+t
+
+</td>
+
+<td style="text-align:right;">
+
+0.0544518
+
+</td>
+
+<td style="text-align:right;">
+
+0.0019299
+
+</td>
+
+<td style="text-align:right;">
+
+28.21464
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+dq2
+
+</td>
+
+<td style="text-align:right;">
+
+2.4182479
+
+</td>
+
+<td style="text-align:right;">
+
+0.1572062
+
+</td>
+
+<td style="text-align:right;">
+
+15.38265
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+dq3
+
+</td>
+
+<td style="text-align:right;">
+
+2.1348211
+
+</td>
+
+<td style="text-align:right;">
+
+0.1572084
+
+</td>
+
+<td style="text-align:right;">
+
+13.57956
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+dq4
+
+</td>
+
+<td style="text-align:right;">
+
+5.3674236
+
+</td>
+
+<td style="text-align:right;">
+
+0.1572120
+
+</td>
+
+<td style="text-align:right;">
+
+34.14130
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+sq\_t
+
+</td>
+
+<td style="text-align:right;">
+
+\-0.0000678
+
+</td>
+
+<td style="text-align:right;">
+
+0.0000047
+
+</td>
+
+<td style="text-align:right;">
+
+\-14.53692
+
+</td>
+
+<td style="text-align:right;">
+
+0
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
 
 ``` r
 Y <- ols_model$residuals %>% ts(start = 1990, frequency = 4)
@@ -706,7 +948,9 @@ Y %>% aTSA::stationary.test()
     Note: in fact, p.value = 0.01 means p.value <= 0.01 
 
 ``` r
-ld_Y <- Y %>% log() %>% diff()
+ld_Y <- Y %>%
+  log() %>%
+  diff()
 ld_Y %>% autoplot()
 ```
 
@@ -770,7 +1014,1991 @@ Model df: 1.   Total lags used: 8
 ```
 
 ``` r
-forecast(arima, h = 24) %>% autoplot()
+library(forecast)
+forecast(arima, h = 24) %>% autoplot(
+  predict.colour = "red",
+  predict.linetype = "dashed", conf.int = FALSE
+)
 ```
 
 ![](Econometrics-II_files/figure-gfm/unnamed-chunk-51-1.png)<!-- -->
+
+## Kointegráció
+
+``` r
+deviza <- readr::read_csv("deviza.csv")
+```
+
+``` r
+deviza %>%
+  select(ATS, DEM) %>%
+  ts() %>%
+  autoplot(facet = T)
+```
+
+![](Econometrics-II_files/figure-gfm/unnamed-chunk-53-1.png)<!-- -->
+
+### Engel-Granger
+
+``` r
+adftable <- function(x, nlag, alpha) {
+  test <- aTSA::stationary.test(x, nlag = nlag, output = F)
+  if (knitr::is_html_output()) {
+    nm <- deparse(substitute(x))
+    setNames(data.frame(cbind(test$type1[, c(1, 3)], test$type2[, 3], test$type3[, 3])), c("lag", "n", "c", "ct")) %>%
+      mutate_at(
+        c("n", "c", "ct"),
+        function(x) round(x, digits = 2)
+      ) %>%
+      mutate_at(
+        c("n", "c", "ct"),
+        function(x) (kableExtra::cell_spec(x, "html", color = ifelse(x > alpha, "red", "black")))
+      ) %>%
+      knitr::kable(format = "html", escape = F, align = c("l", "c", "c", "c"), caption = paste("ADF-test on", nm, "(p-values)"))
+  } else {
+    setNames(data.frame(cbind(test$type1[, c(1, 3)], test$type2[, 3], test$type3[, 3])), c("lag", "n", "c", "ct"))
+  }
+}
+```
+
+``` r
+adftable(deviza$ATS, 10, alpha = .05)
+```
+
+<table>
+
+<caption>
+
+ADF-test on deviza$ATS p-values
+
+</caption>
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+lag
+
+</th>
+
+<th style="text-align:center;">
+
+n
+
+</th>
+
+<th style="text-align:center;">
+
+c
+
+</th>
+
+<th style="text-align:center;">
+
+ct
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+0
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.6</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+1
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.62</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+2
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.62</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+3
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.63</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+4
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.64</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+5
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.61</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+6
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.62</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+7
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.62</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+8
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.61</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+9
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.6</span>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+``` r
+adftable(deviza$DEM, 10, alpha = .05)
+```
+
+<table>
+
+<caption>
+
+ADF-test on deviza$DEM p-values
+
+</caption>
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+lag
+
+</th>
+
+<th style="text-align:center;">
+
+n
+
+</th>
+
+<th style="text-align:center;">
+
+c
+
+</th>
+
+<th style="text-align:center;">
+
+ct
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+0
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.6</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+1
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.61</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+2
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.62</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+3
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.63</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+4
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.64</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+5
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.61</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+6
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.62</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+7
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.61</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+8
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.61</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+9
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.99</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.98</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: red !important;">0.6</span>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+``` r
+adftable(diff(deviza$ATS), 10, alpha = .05)
+```
+
+<table>
+
+<caption>
+
+ADF-test on diff(deviza$ATS) p-values
+
+</caption>
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+lag
+
+</th>
+
+<th style="text-align:center;">
+
+n
+
+</th>
+
+<th style="text-align:center;">
+
+c
+
+</th>
+
+<th style="text-align:center;">
+
+ct
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+0
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+1
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+2
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+3
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+4
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+5
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+6
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+7
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+8
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+9
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+``` r
+adftable(diff(deviza$DEM), 10, alpha = .05)
+```
+
+<table>
+
+<caption>
+
+ADF-test on diff(deviza$DEM) p-values
+
+</caption>
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+lag
+
+</th>
+
+<th style="text-align:center;">
+
+n
+
+</th>
+
+<th style="text-align:center;">
+
+c
+
+</th>
+
+<th style="text-align:center;">
+
+ct
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+0
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+1
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+2
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+3
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+4
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+5
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+6
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+7
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+8
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+9
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+``` r
+deviza %>%
+  select(ATS, DEM) %>%
+  mutate_all(
+    function(x) c(NA, diff(x))
+  ) %>%
+  ts() %>%
+  autoplot(facet = T) + ggtitle("First diffrence of variables")
+```
+
+![](Econometrics-II_files/figure-gfm/unnamed-chunk-56-1.png)<!-- -->
+
+``` r
+deviza %>%
+  select(ATS, DEM) %>%
+  lm(formula = ATS ~ DEM) %>%
+  .$residuals %>%
+  adftable(nlag = 10, alpha = .05)
+```
+
+<table>
+
+<caption>
+
+ADF-test on . (p-values)
+
+</caption>
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+lag
+
+</th>
+
+<th style="text-align:center;">
+
+n
+
+</th>
+
+<th style="text-align:center;">
+
+c
+
+</th>
+
+<th style="text-align:center;">
+
+ct
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+0
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+1
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+2
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+3
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+4
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+5
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+6
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+7
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+8
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+9
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+<td style="text-align:center;">
+
+<span style="     color: black !important;">0.01</span>
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+``` r
+library(urca)
+
+deviza %>%
+  select(ATS, DEM) %>%
+  ca.jo(type = "eigen", K = 5, ecdet = "none", spec = "longrun") %>%
+  summary()
+```
+
+``` 
+
+###################### 
+# Johansen-Procedure # 
+###################### 
+
+Test type: maximal eigenvalue statistic (lambda max) , with linear trend 
+
+Eigenvalues (lambda):
+[1] 9.330962e-02 5.782905e-05
+
+Values of teststatistic and critical values of test:
+
+           test 10pct  5pct  1pct
+r <= 1 |   0.17  6.50  8.18 11.65
+r = 0  | 292.59 12.91 14.90 19.19
+
+Eigenvectors, normalised to first column:
+(These are the cointegration relations)
+
+           ATS.l5      DEM.l5
+ATS.l5  1.0000000  1.00000000
+DEM.l5 -0.1421412 -0.08465075
+
+Weights W:
+(This is the loading matrix)
+
+          ATS.l5       DEM.l5
+ATS.d -0.5585114 0.0001820896
+DEM.d -0.5026300 0.0012922960
+```
+
+Gretl Lmax tesztjével ekvivalens. K adja meg a lag ordert, de nem tudni
+miként kell választani (Gretl-ben is manuálisan kell megadni, alapból 5)
+
+``` r
+deviza %>%
+  select(ATS, DEM) %>%
+  tsDyn::VECM(lag = 1) %>%
+  summary()
+```
+
+``` 
+#############
+###Model VECM 
+#############
+Full sample size: 2992  End sample size: 2990
+Number of variables: 2  Number of estimated slope parameters 8
+AIC -36374.26   BIC -36320.23   SSR 348.4136
+Cointegrating vector (estimated by 2OLS):
+   ATS        DEM
+r1   1 -0.1421364
+
+             ECT                 Intercept         ATS -1             
+Equation ATS -0.6845(0.1536)***  0.0049(0.0009)*** -0.1921(0.1296)    
+Equation DEM -0.5682(1.0762)     0.0343(0.0062)*** -0.3591(0.9082)    
+             DEM -1            
+Equation ATS 0.0207(0.0186)    
+Equation DEM 0.0090(0.1304)    
+```
+
+### By hand solution
+
+``` r
+res <-
+  deviza %>%
+  select(ATS, DEM) %>%
+  lm(formula = ATS ~ DEM) %>%
+  .$residuals
+
+deviza %>%
+  select(ATS, DEM) %>%
+  mutate_all(function(x) {
+    c(NA, diff(x))
+  }) %>%
+  transmute(
+    ATS = ATS,
+    ATS_l1 = lag(ATS),
+    DEM_l1 = lag(DEM),
+    EC = lag(res)
+  ) %>%
+  lm(formula = ATS ~ .) %>%
+  broom::tidy() %>% knitr::kable("html")
+```
+
+<table>
+
+<thead>
+
+<tr>
+
+<th style="text-align:left;">
+
+term
+
+</th>
+
+<th style="text-align:right;">
+
+estimate
+
+</th>
+
+<th style="text-align:right;">
+
+std.error
+
+</th>
+
+<th style="text-align:right;">
+
+statistic
+
+</th>
+
+<th style="text-align:right;">
+
+p.value
+
+</th>
+
+</tr>
+
+</thead>
+
+<tbody>
+
+<tr>
+
+<td style="text-align:left;">
+
+(Intercept)
+
+</td>
+
+<td style="text-align:right;">
+
+0.0049070
+
+</td>
+
+<td style="text-align:right;">
+
+0.0008869
+
+</td>
+
+<td style="text-align:right;">
+
+5.532980
+
+</td>
+
+<td style="text-align:right;">
+
+0.0000000
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+ATS\_l1
+
+</td>
+
+<td style="text-align:right;">
+
+\-0.1910411
+
+</td>
+
+<td style="text-align:right;">
+
+0.1296346
+
+</td>
+
+<td style="text-align:right;">
+
+\-1.473689
+
+</td>
+
+<td style="text-align:right;">
+
+0.1406707
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+DEM\_l1
+
+</td>
+
+<td style="text-align:right;">
+
+0.0205042
+
+</td>
+
+<td style="text-align:right;">
+
+0.0186193
+
+</td>
+
+<td style="text-align:right;">
+
+1.101233
+
+</td>
+
+<td style="text-align:right;">
+
+0.2708842
+
+</td>
+
+</tr>
+
+<tr>
+
+<td style="text-align:left;">
+
+EC
+
+</td>
+
+<td style="text-align:right;">
+
+\-0.6866707
+
+</td>
+
+<td style="text-align:right;">
+
+0.1536540
+
+</td>
+
+<td style="text-align:right;">
+
+\-4.468941
+
+</td>
+
+<td style="text-align:right;">
+
+0.0000082
+
+</td>
+
+</tr>
+
+</tbody>
+
+</table>

@@ -201,8 +201,7 @@ arma2
 ```
 
 ```{r}
-arma3 <- model4_res %>% arma(order = c(2, 1), include.intercept = F)
-arima(model4_res, order = c(2, 0, 1), include.mean = F)
+arma3 <- arima(model4_res, order = c(2, 0, 1), include.mean = F)
 arma3
 ```
 
@@ -252,18 +251,23 @@ predict_df["actual"] <- c(
 
 ```{r}
 predict_df <- predict_df %>% mutate(
-  fitted = c(actual[1], tail(predict_df$dy_v,-1) + tail(predict_df$v,-1)),
+  fitted = c(actual[1], tail(predict_df$dy_v, -1) + tail(predict_df$v, -1)),
   fitted = cumsum(fitted)
 )
 ```
 
 ```{r}
-predict_df %>% select(actual, fitted, dy_v) %>% 
+predict_df %>%
+  select(actual, fitted, dy_v) %>%
   mutate(
     time = str_c(predict_df$year, "Q", 1:4)
-  ) %>% gather(key = "key", value = "value", -time) %>% mutate(
+  ) %>%
+  gather(key = "key", value = "value", -time) %>%
+  mutate(
     t = rep(1:nrow(predict_df), 3)
-  ) %>% ggplot() + geom_line(aes(x = t, y = value, color = key), size = .5)
+  ) %>%
+  ggplot() +
+  geom_line(aes(x = t, y = value, color = key), size = .5)
 ```
 
 ## BJ5 megoldás
@@ -273,15 +277,21 @@ BJ_5 <- readr::read_csv("BJ_5.csv")
 ```
 
 ```{r}
-BJ_5$Y %>% ts(start = 1900, frequency = 4) %>% autoplot()
+BJ_5$Y %>%
+  ts(start = 1900, frequency = 4) %>%
+  autoplot()
 ```
 
 Nem találtam még kvadratikus regresszióval működő adftesztet. Más tesztekhez lehet megadni
 
 ```{r}
-ols_model <- BJ_5 %>% select(-obs, -dq1) %>% lm(formula = Y ~ .)
+ols_model <- BJ_5 %>%
+  select(-obs, -dq1) %>%
+  lm(formula = Y ~ .)
 
-ols_model %>% broom::tidy() %>% knitr::kable(caption = "OLS eredményei")
+ols_model %>%
+  broom::tidy() %>%
+  knitr::kable(caption = "OLS eredményei")
 ```
 
 ```{r}
@@ -321,7 +331,9 @@ Y %>% aTSA::stationary.test()
 ```
 
 ```{r}
-ld_Y <- Y %>% log() %>% diff()
+ld_Y <- Y %>%
+  log() %>%
+  diff()
 ld_Y %>% autoplot()
 ```
 
@@ -342,6 +354,113 @@ arima %>% checkresiduals()
 ```
 
 ```{r}
-forecast(arima, h = 24) %>% autoplot()
+library(forecast)
+forecast(arima, h = 24) %>% autoplot(
+  predict.colour = "red",
+  predict.linetype = "dashed", conf.int = FALSE
+)
 ```
 
+## Kointegráció
+
+```{r}
+deviza <- readr::read_csv("deviza.csv")
+```
+
+```{r}
+deviza %>%
+  select(ATS, DEM) %>%
+  ts() %>%
+  autoplot(facet = T)
+```
+
+### Engel-Granger
+
+
+```{r}
+adftable <- function(x, nlag, alpha) {
+  test <- aTSA::stationary.test(x, nlag = nlag, output = F)
+  if (knitr::is_html_output()) {
+    nm <- deparse(substitute(x))
+    setNames(data.frame(cbind(test$type1[, c(1, 3)], test$type2[, 3], test$type3[, 3])), c("lag", "n", "c", "ct")) %>%
+      mutate_at(
+        c("n", "c", "ct"),
+        function(x) round(x, digits = 2)
+      ) %>%
+      mutate_at(
+        c("n", "c", "ct"),
+        function(x) (kableExtra::cell_spec(x, "html", color = ifelse(x > alpha, "red", "black")))
+      ) %>%
+      knitr::kable(format = "html", escape = F, align = c("l", "c", "c", "c"), caption = paste("ADF-test on", nm, "(p-values)"))
+  } else {
+    setNames(data.frame(cbind(test$type1[, c(1, 3)], test$type2[, 3], test$type3[, 3])), c("lag", "n", "c", "ct"))
+  }
+}
+```
+
+```{r}
+adftable(deviza$ATS, 10, alpha = .05)
+adftable(deviza$DEM, 10, alpha = .05)
+adftable(diff(deviza$ATS), 10, alpha = .05)
+adftable(diff(deviza$DEM), 10, alpha = .05)
+```
+
+```{r}
+deviza %>%
+  select(ATS, DEM) %>%
+  mutate_all(
+    function(x) c(NA, diff(x))
+  ) %>%
+  ts() %>%
+  autoplot(facet = T) + ggtitle("First diffrence of variables")
+```
+
+```{r}
+deviza %>%
+  select(ATS, DEM) %>%
+  lm(formula = ATS ~ DEM) %>%
+  .$residuals %>%
+  adftable(nlag = 10, alpha = .05)
+```
+
+```{r}
+library(urca)
+
+deviza %>%
+  select(ATS, DEM) %>%
+  ca.jo(type = "eigen", K = 5, ecdet = "none", spec = "longrun") %>%
+  summary()
+```
+
+Gretl Lmax tesztjével ekvivalens. K adja meg a lag ordert, de nem tudni miként kell választani (Gretl-ben is manuálisan kell megadni, alapból 5)
+
+```{r}
+deviza %>%
+  select(ATS, DEM) %>%
+  tsDyn::VECM(lag = 1) %>%
+  summary()
+```
+
+### By hand solution
+
+```{r}
+res <-
+  deviza %>%
+  select(ATS, DEM) %>%
+  lm(formula = ATS ~ DEM) %>%
+  .$residuals
+
+deviza %>%
+  select(ATS, DEM) %>%
+  mutate_all(function(x) {
+    c(NA, diff(x))
+  }) %>%
+  transmute(
+    ATS = ATS,
+    ATS_l1 = lag(ATS),
+    DEM_l1 = lag(DEM),
+    EC = lag(res)
+  ) %>%
+  lm(formula = ATS ~ .) %>%
+  broom::tidy() %>% knitr::kable("html")
+```

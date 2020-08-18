@@ -80,8 +80,6 @@ x %>%
 
 # Deviza file
 
-
-
 ```{r}
 deviza %>% head()
 ```
